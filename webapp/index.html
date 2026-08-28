@@ -124,9 +124,18 @@
       (() => {
         const tg = window.Telegram && window.Telegram.WebApp;
         const query = new URLSearchParams(window.location.search);
+        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+        const telegramUserId = telegramUser.id ? String(telegramUser.id) : '';
+        const queryUserId = (query.get('user_id') || '').replace(/[^0-9]/g, '');
+        const sessionUserId = telegramUserId || queryUserId;
+        const trustedBotContext = query.get('known_user') === '1';
+        const sessionPrefix = sessionUserId ? `bet5k_${sessionUserId}_` : '';
+        const scopedKey = (key) => sessionPrefix ? `${sessionPrefix}${key}` : '';
         const readCookie = (key) => {
+          const scoped = scopedKey(key);
+          if (!scoped) return '';
           try {
-            const name = `${encodeURIComponent(key)}=`;
+            const name = `${encodeURIComponent(scoped)}=`;
             const item = document.cookie.split('; ').find((entry) => entry.startsWith(name));
             return item ? decodeURIComponent(item.slice(name.length)) : '';
           } catch (_) { return ''; }
@@ -134,12 +143,15 @@
         const readSession = (key) => {
           const cookie = readCookie(key);
           if (cookie) return cookie;
-          try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; }
+          if (!sessionPrefix) return '';
+          try { return sessionStorage.getItem(scopedKey(key)) || ''; } catch (_) { return ''; }
         };
         const saveSession = (key, value) => {
           const next = String(value || '');
-          try { document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(next)}; Max-Age=31536000; Path=/; SameSite=Lax`; } catch (_) {}
-          try { sessionStorage.setItem(key, next); } catch (_) {}
+          const scoped = scopedKey(key);
+          if (!scoped) return;
+          try { document.cookie = `${encodeURIComponent(scoped)}=${encodeURIComponent(next)}; Max-Age=31536000; Path=/; SameSite=Lax`; } catch (_) {}
+          try { sessionStorage.setItem(scoped, next); } catch (_) {}
         };
         const rawTarget = query.get('target') || '';
         const rawFlow = query.get('flow') || '';
@@ -155,7 +167,6 @@
         }
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
-        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
         const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || 'Участник';
         const initials = displayName.trim().charAt(0).toUpperCase() || '?';
         const avatar = document.getElementById('avatar'); const avatarFallback = document.getElementById('avatarFallback');
@@ -182,7 +193,11 @@
         const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
         const confirmModal = document.getElementById('confirmModal'); const confirmId = document.getElementById('confirmId');
         let clientId = readSession('bet5k_client_id');
-        let step = Number(readSession('bet5k_step')) || (flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1);
+        const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
+        // A public/stale URL has no verified bot context. Start from step 1
+        // instead of reusing another person's browser state or jumping to a
+        // later step. Bot-issued links carry known_user=1 and a user_id.
+        let step = trustedBotContext ? (Number(readSession('bet5k_step')) || flowStep) : 1;
         if (flow === 'match' || flow === 'link') step = 0;
         let accessPromise;
         const setStatus = (text, kind = '') => { status.textContent = text || ''; status.className = `status ${kind}`.trim(); };
