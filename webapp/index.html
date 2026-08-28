@@ -160,10 +160,12 @@
         const profileTarget = query.get('profile_target') || readSession('bet5k_profile_target');
         const depositTarget = query.get('deposit_target') || readSession('bet5k_deposit_target');
         const botUrl = query.get('bot_url') || readSession('bet5k_bot_url');
+        const resetToken = query.get('reset_token') || readSession('bet5k_reset_token');
         if (rawTarget) {
           saveSession('bet5k_target', rawTarget); saveSession('bet5k_flow', rawFlow || 'link');
           saveSession('bet5k_profile_target', query.get('profile_target') || ''); saveSession('bet5k_deposit_target', query.get('deposit_target') || '');
           saveSession('bet5k_bot_url', query.get('bot_url') || '');
+          saveSession('bet5k_reset_token', query.get('reset_token') || '');
         }
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
@@ -194,6 +196,20 @@
         const confirmModal = document.getElementById('confirmModal'); const confirmId = document.getElementById('confirmId');
         let clientId = readSession('bet5k_client_id');
         const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
+        const stateVersion = '3';
+        const appliedResetToken = readSession('bet5k_applied_reset_token');
+        const needsStateReset = trustedBotContext && (
+          readSession('bet5k_state_version') !== stateVersion
+          || (resetToken && resetToken !== appliedResetToken)
+        );
+        if (needsStateReset) {
+          saveSession('bet5k_state_version', stateVersion);
+          saveSession('bet5k_applied_reset_token', resetToken || 'legacy');
+          saveSession('bet5k_step', '');
+          saveSession('bet5k_client_id', '');
+          saveSession('bet5k_submission_sent', '');
+          clientId = '';
+        }
         // A public/stale URL has no verified bot context. Start from step 1
         // instead of reusing another person's browser state or jumping to a
         // later step. Bot-issued links carry known_user=1 and a user_id.
