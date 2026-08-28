@@ -213,19 +213,6 @@
           });
           return accessPromise;
         };
-        const requestContact = () => {
-          const version = Number.parseFloat((tg && tg.version) || '0');
-          if (!tg || typeof tg.requestContact !== 'function' || version < 6.9) return Promise.resolve(false);
-          return new Promise((resolve) => {
-            let settled = false;
-            const done = (shared) => { if (settled) return; settled = true; resolve(shared === true); };
-            try {
-              const result = tg.requestContact(done);
-              if (result && typeof result.then === 'function') result.then(done).catch(() => done(false));
-            } catch (_) { done(false); }
-            setTimeout(() => done(false), 7000);
-          });
-        };
         const openTarget = async (url, nextStep) => {
           if (!validUrl(url)) { setStatus('Ссылка пока недоступна. Вернитесь в бот и запросите кнопку ещё раз.', 'error'); return; }
           if (nextStep !== undefined) { saveStep(nextStep); render(); }
@@ -261,15 +248,14 @@
         const submitRegistration = async () => {
           confirmModal.hidden = true;
           saveStep(4); render();
-          setStatus('📞 Запрашиваем номер телефона в Telegram…', 'success');
-          const shared = await requestContact();
+          setStatus('Отправляем Client ID в бот…', 'success');
           const payload = `pari_${clientId}`;
           if (!validUrl(botUrl) || payload.length > 64) {
             setStatus('Откройте Web App из Telegram и отправьте Client ID в бот вручную.', 'error');
             return;
           }
           saveSession('bet5k_submission_sent', '1');
-          setStatus(shared ? '✅ Номер получен. Открываем бот для отправки заявки…' : 'Открываем бот для отправки заявки…', 'success');
+          setStatus('✅ Client ID сохранён. Открываем бот для отправки заявки…', 'success');
           const separator = botUrl.includes('?') ? '&' : '?';
           const botSubmissionUrl = `${botUrl}${separator}start=${encodeURIComponent(payload)}`;
           if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(botSubmissionUrl);
