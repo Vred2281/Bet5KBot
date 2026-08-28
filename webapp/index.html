@@ -128,7 +128,7 @@
         const telegramUserId = telegramUser.id ? String(telegramUser.id) : '';
         const queryUserId = (query.get('user_id') || '').replace(/[^0-9]/g, '');
         const sessionUserId = telegramUserId || queryUserId;
-        const trustedBotContext = query.get('known_user') === '1';
+        const trustedBotContext = query.get('known_user') === '1' && Boolean(sessionUserId);
         const sessionPrefix = sessionUserId ? `bet5k_${sessionUserId}_` : '';
         const scopedKey = (key) => sessionPrefix ? `${sessionPrefix}${key}` : '';
         const readCookie = (key) => {
