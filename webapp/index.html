@@ -52,10 +52,6 @@
       button.secondary { background: #23384a; color: var(--text); border: 1px solid var(--border); }
       button.ghost { background: transparent; color: var(--accent); padding: 10px; font-weight: 700; }
       button:disabled { opacity: .6; cursor: wait; transform: none; }
-      .field { margin-top: 17px; }
-      label { display: block; color: var(--hint); font-size: 13px; margin-bottom: 7px; }
-      input { width: 100%; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 14px 15px; color: var(--text); background: #162534; outline: none; font: inherit; font-size: 17px; letter-spacing: .04em; }
-      input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(53,184,255,.16); }
       .hint, .status { margin: 8px 0 0; color: var(--hint); font-size: 12px; line-height: 1.4; }
       .status.error { color: #ff9a9a; }
       .status.success { color: var(--success); }
@@ -63,16 +59,8 @@
       .details h2 { margin: 0 0 8px; font-size: 17px; }
       .details ol { margin: 0; padding-left: 20px; }
       .details li { margin: 7px 0; }
-      .modal { position: fixed; inset: 0; z-index: 5; display: grid; place-items: end center; padding: 18px; background: rgba(0,0,0,.58); backdrop-filter: blur(6px); }
-      .modal[hidden], [hidden] { display: none !important; }
-      .modal-card { width: min(520px, 100%); padding: 22px 18px; border-radius: 24px 24px 18px 18px; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 18px 44px rgba(0,0,0,.34); animation: sheet-in .35s ease both; }
-      .confirm-user { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-      .confirm-title { margin: 0 0 9px; font-size: 22px; }
-      .confirm-id { display: inline-block; margin: 10px 0 3px; padding: 9px 11px; border-radius: 11px; color: #dff5ff; background: rgba(53,184,255,.12); font-weight: 800; letter-spacing: .06em; }
-      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 17px; }
       .fineprint { color: var(--hint); text-align: center; font-size: 11px; line-height: 1.4; margin: 2px 4px 0; }
       @keyframes card-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-      @keyframes sheet-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
       @keyframes glow { 0%, 100% { box-shadow: 0 0 0 rgba(53,184,255,0); } 50% { box-shadow: 0 0 22px rgba(53,184,255,.12); } }
       @media (min-width: 600px) { main { align-items: center; } .card { padding: 29px 28px 26px; } }
@@ -97,28 +85,12 @@
           <h1 id="title">Регистрация в PARI</h1>
           <p class="lead" id="lead"></p>
           <div class="content" id="content"></div>
-          <div class="field" id="clientField" hidden>
-            <label for="clientId">Client ID из личного кабинета PARI</label>
-            <input id="clientId" inputmode="text" autocomplete="off" maxlength="64" placeholder="Например, 12345678">
-            <p class="hint">Используйте латинские буквы, цифры, «_» или «-».</p>
-          </div>
           <div class="actions" id="actions"></div>
           <p class="status" id="status" role="status"></p>
         </section>
         <p class="fineprint">Сервис предназначен для лиц старше 18 лет. Прогнозы не гарантируют выигрыш. Проверяйте актуальные условия акции на официальных ресурсах PARI.</p>
       </div>
     </main>
-
-    <div class="modal" id="confirmModal" hidden>
-      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-        <div class="confirm-user"><div class="avatar avatar-fallback" id="confirmAvatarFallback">?</div><img class="avatar" id="confirmAvatar" alt="" hidden><div class="user-name" id="confirmUserName">Участник</div></div>
-        <h2 class="confirm-title" id="confirmTitle">Проверь Client ID</h2>
-        <div id="confirmText">Твой ID из личного кабинета:</div>
-        <div class="confirm-id" id="confirmId"></div>
-        <div>Всё верно?</div>
-        <div class="modal-actions"><button class="secondary" id="confirmNo" type="button">Нет, исправить</button><button id="confirmYes" type="button">Да, отправить</button></div>
-      </section>
-    </div>
 
     <script>
       (() => {
@@ -175,10 +147,9 @@
         const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || 'Участник';
         const initials = displayName.trim().charAt(0).toUpperCase() || '?';
         const avatar = document.getElementById('avatar'); const avatarFallback = document.getElementById('avatarFallback');
-        const confirmAvatar = document.getElementById('confirmAvatar'); const confirmAvatarFallback = document.getElementById('confirmAvatarFallback');
-        document.getElementById('userName').textContent = displayName; document.getElementById('confirmUserName').textContent = displayName;
-        avatarFallback.textContent = initials; confirmAvatarFallback.textContent = initials;
-        if (telegramUser.photo_url) { avatar.src = telegramUser.photo_url; avatar.hidden = false; avatarFallback.hidden = true; confirmAvatar.src = telegramUser.photo_url; confirmAvatar.hidden = false; confirmAvatarFallback.hidden = true; }
+        document.getElementById('userName').textContent = displayName;
+        avatarFallback.textContent = initials;
+        if (telegramUser.photo_url) { avatar.src = telegramUser.photo_url; avatar.hidden = false; avatarFallback.hidden = true; }
         if (tg) { tg.ready(); tg.expand(); }
 
         const validUrl = (url) => /^https?:\/\//i.test(url || '');
@@ -194,10 +165,8 @@
           botLink.removeAttribute('href');
         }
         const title = document.getElementById('title'); const lead = document.getElementById('lead'); const content = document.getElementById('content');
-        const actions = document.getElementById('actions'); const clientField = document.getElementById('clientField'); const clientInput = document.getElementById('clientId');
+        const actions = document.getElementById('actions');
         const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
-        const confirmModal = document.getElementById('confirmModal'); const confirmId = document.getElementById('confirmId');
-        let clientId = readSession('bet5k_client_id');
         let submissionSent = readSession('bet5k_submission_sent') === '1';
         const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
         const stateVersion = '3';
@@ -210,9 +179,7 @@
           saveSession('bet5k_state_version', stateVersion);
           saveSession('bet5k_applied_reset_token', resetToken || 'legacy');
           saveSession('bet5k_step', '');
-          saveSession('bet5k_client_id', '');
           saveSession('bet5k_submission_sent', '');
-          clientId = '';
           submissionSent = false;
         }
         // A public/stale URL has no verified bot context. Start from step 1
@@ -245,12 +212,17 @@
         const actionButton = (text, handler, kind = '') => { const button = document.createElement('button'); button.type = 'button'; button.textContent = text; if (kind) button.className = kind; button.addEventListener('click', handler); return button; };
 
         function render() {
-          actions.replaceChildren(); content.replaceChildren(); clientField.hidden = step !== 3; progress.hidden = step === 0; stepLabel.hidden = step === 0; document.querySelector('.promo').hidden = step === 0;
+          actions.replaceChildren(); content.replaceChildren(); progress.hidden = step === 0; stepLabel.hidden = step === 0; document.querySelector('.promo').hidden = step === 0;
           if (step === 0) { title.textContent = flow === 'match' ? 'Страница матча' : 'Открываем ссылку'; lead.textContent = 'Нажмите кнопку, чтобы продолжить переход.'; actions.append(actionButton('🏟 Открыть страницу', () => openTarget(target))); return; }
           stepLabel.textContent = `Шаг ${step} из 4`; [...progress.children].forEach((bar, index) => bar.classList.toggle('active', index < step));
           if (step === 1) { title.textContent = 'Шаг 1. Регистрация в PARI'; lead.textContent = `${displayName}, чтобы получить полный доступ к боту — пройдите регистрацию по кнопке ниже. Это бесплатно.`; content.innerHTML = '<p>Введи промокод <strong>GYM5K</strong> при регистрации и возвращайся сюда после завершения.</p>'; actions.append(actionButton('🚀 Зарегистрироваться в PARI', () => openTarget(target, 2))); }
           else if (step === 2) { title.textContent = 'Шаг 2. Идентификация'; lead.textContent = `${displayName}, пройди идентификацию через Госуслуги, Сбер ID или T-ID.`; content.innerHTML = '<p>После идентификации нажми кнопку ниже — или сразу выбери «Уже прошёл идентификацию».</p>'; actions.append(actionButton('🔐 Пройти идентификацию', () => openTarget(profileTarget, 3))); actions.append(actionButton('Уже прошёл идентификацию', () => { saveStep(3); render(); }, 'secondary')); }
-          else if (step === 3) { title.textContent = 'Шаг 3. Введи Client ID'; lead.textContent = 'Укажи Client ID из личного кабинета PARI — мы передадим его администратору на проверку.'; actions.append(actionButton('✅ Проверить Client ID', showConfirmation)); }
+          else if (step === 3) {
+            title.textContent = 'Шаг 3. Введи Client ID';
+            lead.textContent = `${displayName}, введи Client ID прямо в чате с ботом — так заявка точно попадёт администратору на проверку.`;
+            content.innerHTML = '<p>Нажми кнопку ниже. Бот откроет чат и подскажет, куда отправить Client ID из личного кабинета PARI.</p>';
+            actions.append(actionButton('📝 Ввести Client ID в боте', openBotClientIdInput, 'secondary'));
+          }
           else {
             title.textContent = 'Шаг 4. Первый фрибет';
             lead.textContent = `${displayName}, внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации — получи первый фрибет.`;
@@ -266,31 +238,21 @@
             }
           }
         }
-        function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
-        function showConfirmation() { const value = (clientInput.value || '').trim(); if (!/^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/.test(value)) { setStatus('Введите Client ID: от 2 до 64 символов, только латиница, цифры, «_» или «-».', 'error'); return; } clientId = value; saveSession('bet5k_client_id', value); confirmId.textContent = value; confirmModal.hidden = false; setStatus(''); }
-        document.getElementById('confirmNo').addEventListener('click', () => { confirmModal.hidden = true; clientInput.focus(); });
-        const submitRegistration = async () => {
-          confirmModal.hidden = true;
-          saveStep(4); render();
-          setStatus('Отправляем Client ID в бот…', 'success');
-          const payload = `pari_${clientId}`;
-          if (!validUrl(botUrl) || payload.length > 64) {
-            setStatus('Откройте Web App из Telegram и отправьте Client ID в бот вручную.', 'error');
+        function openBotClientIdInput() {
+          saveStep(3);
+          if (!validUrl(botUrl)) {
+            setStatus('Откройте Web App из сообщения бота и повторите попытку.', 'error');
             return;
           }
-          saveSession('bet5k_submission_sent', '1');
-          submissionSent = true;
-          setStatus('✅ Client ID сохранён. Открываем бот для отправки заявки…', 'success');
           const separator = botUrl.includes('?') ? '&' : '?';
-          const botSubmissionUrl = `${botUrl}${separator}start=${encodeURIComponent(payload)}`;
-          if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(botSubmissionUrl);
-          else window.location.assign(botSubmissionUrl);
-        };
-        document.getElementById('confirmYes').addEventListener('click', submitRegistration);
+          const botInputUrl = `${botUrl}${separator}start=pari_input`;
+          if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(botInputUrl);
+          else window.location.assign(botInputUrl);
+        }
+        function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
         render();
         if (flow === 'pari') requestWriteAccess().then((allowed) => { if (allowed && step === 1 && tg && typeof tg.openLink === 'function') setStatus('Готово. Нажмите кнопку регистрации ниже.'); });
       })();
     </script>
   </body>
 </html>
-
