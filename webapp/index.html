@@ -198,6 +198,7 @@
         const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
         const confirmModal = document.getElementById('confirmModal'); const confirmId = document.getElementById('confirmId');
         let clientId = readSession('bet5k_client_id');
+        let submissionSent = readSession('bet5k_submission_sent') === '1';
         const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
         const stateVersion = '3';
         const appliedResetToken = readSession('bet5k_applied_reset_token');
@@ -212,6 +213,7 @@
           saveSession('bet5k_client_id', '');
           saveSession('bet5k_submission_sent', '');
           clientId = '';
+          submissionSent = false;
         }
         // A public/stale URL has no verified bot context. Start from step 1
         // instead of reusing another person's browser state or jumping to a
@@ -259,6 +261,9 @@
             });
             actions.append(actionButton('💳 Пополнить баланс', () => openTarget(depositTarget, 4)));
             actions.append(actionButton('Как получить 5 приветственных фрибетов по 1000 ₽?', toggleDetails, 'secondary'));
+            if (!submissionSent) {
+              actions.append(actionButton('↩️ Вернуться к вводу Client ID', () => { saveStep(3); render(); }, 'ghost'));
+            }
           }
         }
         function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
@@ -274,6 +279,7 @@
             return;
           }
           saveSession('bet5k_submission_sent', '1');
+          submissionSent = true;
           setStatus('✅ Client ID сохранён. Открываем бот для отправки заявки…', 'success');
           const separator = botUrl.includes('?') ? '&' : '?';
           const botSubmissionUrl = `${botUrl}${separator}start=${encodeURIComponent(payload)}`;
