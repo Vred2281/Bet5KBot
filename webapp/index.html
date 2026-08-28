@@ -128,7 +128,6 @@
         const telegramUserId = telegramUser.id ? String(telegramUser.id) : '';
         const queryUserId = (query.get('user_id') || '').replace(/[^0-9]/g, '');
         const sessionUserId = telegramUserId || queryUserId;
-        const trustedBotContext = query.get('known_user') === '1' && Boolean(sessionUserId);
         const sessionPrefix = sessionUserId ? `bet5k_${sessionUserId}_` : '';
         const scopedKey = (key) => sessionPrefix ? `${sessionPrefix}${key}` : '';
         const readCookie = (key) => {
@@ -166,7 +165,11 @@
           saveSession('bet5k_profile_target', query.get('profile_target') || ''); saveSession('bet5k_deposit_target', query.get('deposit_target') || '');
           saveSession('bet5k_bot_url', query.get('bot_url') || '');
           saveSession('bet5k_reset_token', query.get('reset_token') || '');
+          saveSession('bet5k_known_user', query.get('known_user') === '1' ? '1' : '');
         }
+        const trustedBotContext = Boolean(sessionUserId) && (
+          query.get('known_user') === '1' || readSession('bet5k_known_user') === '1'
+        );
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
         const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || 'Участник';
