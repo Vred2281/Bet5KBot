@@ -25,6 +25,7 @@
       .shell { width: min(520px, 100%); display: flex; flex-direction: column; gap: 14px; }
       .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 4px; }
       .brand { font-size: 13px; color: var(--hint); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+      .brand a { color: inherit; text-decoration: none; }
       /* Telegram's secondary background keeps this chip consistent with the
          user's selected theme while the text remains high-contrast. */
       .user { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 5px 10px 5px 6px; border-radius: 999px; background: var(--tg-theme-secondary-bg-color, rgba(31,48,64,.86)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 5px 16px rgba(0,0,0,.14); backdrop-filter: blur(8px); }
@@ -81,7 +82,7 @@
     <main>
       <div class="shell">
         <div class="topbar">
-          <div class="brand">Bet5K · официальный переход</div>
+          <div class="brand"><a id="botLink" href="#">Bet5K</a></div>
           <div class="user">
             <div class="avatar avatar-fallback" id="avatarFallback">?</div>
             <img class="avatar" id="avatar" alt="" hidden>
@@ -123,17 +124,34 @@
       (() => {
         const tg = window.Telegram && window.Telegram.WebApp;
         const query = new URLSearchParams(window.location.search);
-        const readSession = (key) => { try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; } };
-        const saveSession = (key, value) => { try { sessionStorage.setItem(key, value || ''); } catch (_) {} };
+        const readCookie = (key) => {
+          try {
+            const name = `${encodeURIComponent(key)}=`;
+            const item = document.cookie.split('; ').find((entry) => entry.startsWith(name));
+            return item ? decodeURIComponent(item.slice(name.length)) : '';
+          } catch (_) { return ''; }
+        };
+        const readSession = (key) => {
+          const cookie = readCookie(key);
+          if (cookie) return cookie;
+          try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; }
+        };
+        const saveSession = (key, value) => {
+          const next = String(value || '');
+          try { document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(next)}; Max-Age=31536000; Path=/; SameSite=Lax`; } catch (_) {}
+          try { sessionStorage.setItem(key, next); } catch (_) {}
+        };
         const rawTarget = query.get('target') || '';
         const rawFlow = query.get('flow') || '';
         const target = rawTarget || readSession('bet5k_target');
         const flow = rawFlow || readSession('bet5k_flow') || 'link';
         const profileTarget = query.get('profile_target') || readSession('bet5k_profile_target');
         const depositTarget = query.get('deposit_target') || readSession('bet5k_deposit_target');
+        const botUrl = query.get('bot_url') || readSession('bet5k_bot_url');
         if (rawTarget) {
           saveSession('bet5k_target', rawTarget); saveSession('bet5k_flow', rawFlow || 'link');
           saveSession('bet5k_profile_target', query.get('profile_target') || ''); saveSession('bet5k_deposit_target', query.get('deposit_target') || '');
+          saveSession('bet5k_bot_url', query.get('bot_url') || '');
         }
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
@@ -148,6 +166,17 @@
         if (tg) { tg.ready(); tg.expand(); }
 
         const validUrl = (url) => /^https?:\/\//i.test(url || '');
+        const botLink = document.getElementById('botLink');
+        if (validUrl(botUrl)) {
+          botLink.href = botUrl;
+          botLink.addEventListener('click', (event) => {
+            if (tg && typeof tg.openTelegramLink === 'function' && /(^|\.)t\.me$/i.test(new URL(botUrl).hostname)) {
+              event.preventDefault(); tg.openTelegramLink(botUrl);
+            }
+          });
+        } else {
+          botLink.removeAttribute('href');
+        }
         const title = document.getElementById('title'); const lead = document.getElementById('lead'); const content = document.getElementById('content');
         const actions = document.getElementById('actions'); const clientField = document.getElementById('clientField'); const clientInput = document.getElementById('clientId');
         const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
@@ -169,6 +198,19 @@
           });
           return accessPromise;
         };
+        const requestContact = () => {
+          const version = Number.parseFloat((tg && tg.version) || '0');
+          if (!tg || typeof tg.requestContact !== 'function' || version < 6.9) return Promise.resolve(false);
+          return new Promise((resolve) => {
+            let settled = false;
+            const done = (shared) => { if (settled) return; settled = true; resolve(shared === true); };
+            try {
+              const result = tg.requestContact(done);
+              if (result && typeof result.then === 'function') result.then(done).catch(() => done(false));
+            } catch (_) { done(false); }
+            setTimeout(() => done(false), 7000);
+          });
+        };
         const openTarget = async (url, nextStep) => {
           if (!validUrl(url)) { setStatus('Ссылка пока недоступна. Вернитесь в бот и запросите кнопку ещё раз.', 'error'); return; }
           if (nextStep !== undefined) { saveStep(nextStep); render(); }
@@ -186,12 +228,39 @@
           if (step === 1) { title.textContent = 'Шаг 1. Регистрация в PARI'; lead.textContent = `${displayName}, чтобы получить полный доступ к боту — пройдите регистрацию по кнопке ниже. Это бесплатно.`; content.innerHTML = '<p>Введи промокод <strong>GYM5K</strong> при регистрации и возвращайся сюда после завершения.</p>'; actions.append(actionButton('🚀 Зарегистрироваться в PARI', () => openTarget(target, 2))); }
           else if (step === 2) { title.textContent = 'Шаг 2. Идентификация'; lead.textContent = `${displayName}, пройди идентификацию через Госуслуги, Сбер ID или T-ID.`; content.innerHTML = '<p>После идентификации нажми кнопку ниже — или сразу выбери «Уже прошёл идентификацию».</p>'; actions.append(actionButton('🔐 Пройти идентификацию', () => openTarget(profileTarget, 3))); actions.append(actionButton('Уже прошёл идентификацию', () => { saveStep(3); render(); }, 'secondary')); }
           else if (step === 3) { title.textContent = 'Шаг 3. Введи Client ID'; lead.textContent = 'Укажи Client ID из личного кабинета PARI — мы передадим его администратору на проверку.'; actions.append(actionButton('✅ Проверить Client ID', showConfirmation)); }
-          else { title.textContent = 'Шаг 4. Первый фрибет'; lead.textContent = `${displayName}, внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации — получи первый фрибет.`; content.innerHTML = 'У меня большой опыт <a href="https://t.me/BK5ET/4" target="_blank" rel="noopener">работы с фрибетами</a> — это отличный инструмент для увеличения банка.'; actions.append(actionButton('💳 Пополнить баланс', () => openTarget(depositTarget, 4))); actions.append(actionButton('Как получить 5 приветственных фрибетов по 1000 ₽?', toggleDetails, 'secondary')); actions.append(actionButton('📝 Регистрация', () => { if (clientId) { setStatus('✅ Client ID уже отправлен. Регистрация пройдена, заявка находится на проверке.', 'success'); return; } saveStep(1); render(); }, 'ghost')); }
+          else {
+            title.textContent = 'Шаг 4. Первый фрибет';
+            lead.textContent = `${displayName}, внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации — получи первый фрибет.`;
+            content.innerHTML = 'У меня большой опыт <a href="https://t.me/BK5ET/4" data-telegram-link>работы с фрибетами</a> — это отличный инструмент для увеличения банка.';
+            const freebetLink = content.querySelector('[data-telegram-link]');
+            freebetLink.addEventListener('click', (event) => {
+              if (tg && typeof tg.openTelegramLink === 'function') { event.preventDefault(); tg.openTelegramLink(freebetLink.href); }
+            });
+            actions.append(actionButton('💳 Пополнить баланс', () => openTarget(depositTarget, 4)));
+            actions.append(actionButton('Как получить 5 приветственных фрибетов по 1000 ₽?', toggleDetails, 'secondary'));
+          }
         }
         function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
         function showConfirmation() { const value = (clientInput.value || '').trim(); if (!/^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/.test(value)) { setStatus('Введите Client ID: от 2 до 64 символов, только латиница, цифры, «_» или «-».', 'error'); return; } clientId = value; saveSession('bet5k_client_id', value); confirmId.textContent = value; confirmModal.hidden = false; setStatus(''); }
         document.getElementById('confirmNo').addEventListener('click', () => { confirmModal.hidden = true; clientInput.focus(); });
-        document.getElementById('confirmYes').addEventListener('click', () => { confirmModal.hidden = true; saveStep(4); render(); setStatus('✅ Заявка отправляется администратору…', 'success'); const payload = JSON.stringify({ type: 'pari_registration', action: 'submit', client_id: clientId }); if (tg && typeof tg.sendData === 'function') tg.sendData(payload); else setStatus('Откройте Web App из Telegram, чтобы отправить Client ID в бот.', 'error'); });
+        const submitRegistration = async () => {
+          confirmModal.hidden = true;
+          saveStep(4); render();
+          setStatus('📞 Запрашиваем номер телефона в Telegram…', 'success');
+          const shared = await requestContact();
+          const payload = `pari_${clientId}`;
+          if (!validUrl(botUrl) || payload.length > 64) {
+            setStatus('Откройте Web App из Telegram и отправьте Client ID в бот вручную.', 'error');
+            return;
+          }
+          saveSession('bet5k_submission_sent', '1');
+          setStatus(shared ? '✅ Номер получен. Открываем бот для отправки заявки…' : 'Открываем бот для отправки заявки…', 'success');
+          const separator = botUrl.includes('?') ? '&' : '?';
+          const botSubmissionUrl = `${botUrl}${separator}start=${encodeURIComponent(payload)}`;
+          if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(botSubmissionUrl);
+          else window.location.assign(botSubmissionUrl);
+        };
+        document.getElementById('confirmYes').addEventListener('click', submitRegistration);
         render();
         if (flow === 'pari') requestWriteAccess().then((allowed) => { if (allowed && step === 1 && tg && typeof tg.openLink === 'function') setStatus('Готово. Нажмите кнопку регистрации ниже.'); });
       })();
