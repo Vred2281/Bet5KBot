@@ -3,9 +3,6 @@ name: Deploy Telegram Web App (Pages)
 on:
   push:
     branches: [main]
-    paths:
-      - "webapp/**"
-      - ".github/workflows/deploy-webapp.yml"
   workflow_dispatch:
 
 permissions:
