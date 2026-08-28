@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Bet5K</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; min-height: 100vh; background: var(--tg-theme-bg-color, #101820); color: var(--tg-theme-text-color, #fff); }
+      main { box-sizing: border-box; min-height: 100vh; padding: 32px 20px; display: flex; align-items: center; justify-content: center; }
+      .card { width: min(460px, 100%); padding: 28px 22px; border-radius: 22px; background: var(--tg-theme-secondary-bg-color, #1c2a38); text-align: center; box-shadow: 0 12px 32px rgba(0,0,0,.24); }
+      .emoji { font-size: 42px; }
+      h1 { margin: 10px 0 12px; font-size: 24px; }
+      p { margin: 0 0 22px; color: var(--tg-theme-hint-color, #aab8c5); line-height: 1.45; }
+      button { width: 100%; border: 0; border-radius: 14px; padding: 14px 18px; font-size: 16px; font-weight: 700; color: var(--tg-theme-button-text-color, #fff); background: var(--tg-theme-button-color, #2aabee); }
+      .small { margin-top: 14px; font-size: 12px; }
+      .error { color: #ff8c8c; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <div class="emoji" id="emoji">🚀</div>
+        <h1 id="title">Открываем ссылку</h1>
+        <p id="description">Подтвердите доступ к диалогу с ботом, чтобы получать уведомления и подсказки.</p>
+        <button id="continue">Продолжить</button>
+        <p class="small" id="status"></p>
+      </section>
+    </main>
+    <script>
+      (() => {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        const query = new URLSearchParams(window.location.search);
+        const rawTarget = query.get('target');
+        const rawFlow = query.get('flow');
+        if (rawTarget) {
+          try {
+            sessionStorage.setItem('bet5k_target', rawTarget);
+            sessionStorage.setItem('bet5k_flow', rawFlow || 'link');
+          } catch (_) {}
+        }
+        const target = rawTarget || (() => { try { return sessionStorage.getItem('bet5k_target'); } catch (_) { return null; } })();
+        const flow = rawFlow || (() => { try { return sessionStorage.getItem('bet5k_flow'); } catch (_) { return null; } })() || 'link';
+        // Keep the long affiliate/match destination out of the visible Web
+        // App address bar after it has been read.
+        try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
+        const title = document.getElementById('title');
+        const description = document.getElementById('description');
+        const button = document.getElementById('continue');
+        const status = document.getElementById('status');
+
+        if (tg) {
+          tg.ready();
+          tg.expand();
+          if (tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme;
+        }
+        if (flow === 'pari') {
+          title.textContent = 'Регистрация в PARI';
+          description.textContent = 'Разрешите сообщения от бота — после этого откроется регистрация и придёт CTA с дальнейшими шагами.';
+          document.getElementById('emoji').textContent = '🎯';
+        } else if (flow === 'pari_profile') {
+          title.textContent = 'Личный кабинет PARI';
+          description.textContent = 'Открываем ваш кабинет в PARI. Ссылка защищена Web App-обёрткой.';
+          document.getElementById('emoji').textContent = '👤';
+        } else if (flow === 'match') {
+          title.textContent = 'Страница матча';
+          description.textContent = 'Открываем страницу матча в защищённой Web App-обёртке.';
+          document.getElementById('emoji').textContent = '🏟️';
+        }
+
+        const openTarget = () => {
+          if (!target || !/^https?:\/\//i.test(target)) {
+            status.textContent = 'Ссылка недоступна.';
+            status.classList.add('error');
+            return;
+          }
+          if (tg && typeof tg.openLink === 'function') tg.openLink(target);
+          else window.location.assign(target);
+        };
+
+        let accessPromise;
+        const requestWriteAccess = () => {
+          if (accessPromise) return accessPromise;
+          const tgVersion = Number.parseFloat((tg && tg.version) || '0');
+          if (!tg || typeof tg.requestWriteAccess !== 'function' || tgVersion < 6.9) {
+            return Promise.resolve(true);
+          }
+          accessPromise = new Promise((resolve) => {
+            let settled = false;
+            const done = (allowed) => {
+              if (settled) return;
+              settled = true;
+              resolve(allowed !== false);
+            };
+            try {
+              const result = tg.requestWriteAccess(done);
+              if (result && typeof result.then === 'function') result.then(done).catch(() => done(false));
+            } catch (_) { done(false); }
+            setTimeout(() => done(false), 5000);
+          });
+          return accessPromise;
+        };
+
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          status.textContent = 'Запрашиваем разрешение…';
+          const allowed = await requestWriteAccess();
+          if (allowed) {
+            status.textContent = 'Готово. Открываем…';
+            setTimeout(openTarget, 120);
+          } else {
+            status.textContent = 'Разрешение не выдано. Нажмите кнопку ещё раз или разрешите сообщения в Telegram.';
+            button.disabled = false;
+          }
+        });
+
+        // Start the permission prompt immediately on first open where the
+        // Telegram client supports it; the button remains as a fallback.
+        if (flow === 'pari') requestWriteAccess().then((allowed) => {
+          if (allowed) openTarget();
+        });
+      })();
+    </script>
+  </body>
+</html>
+
