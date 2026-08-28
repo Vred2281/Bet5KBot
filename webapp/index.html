@@ -3,123 +3,195 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Bet5K</title>
+    <title>Bet5K · PARI</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-      :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      body { margin: 0; min-height: 100vh; background: var(--tg-theme-bg-color, #101820); color: var(--tg-theme-text-color, #fff); }
-      main { box-sizing: border-box; min-height: 100vh; padding: 32px 20px; display: flex; align-items: center; justify-content: center; }
-      .card { width: min(460px, 100%); padding: 28px 22px; border-radius: 22px; background: var(--tg-theme-secondary-bg-color, #1c2a38); text-align: center; box-shadow: 0 12px 32px rgba(0,0,0,.24); }
-      .emoji { font-size: 42px; }
-      h1 { margin: 10px 0 12px; font-size: 24px; }
-      p { margin: 0 0 22px; color: var(--tg-theme-hint-color, #aab8c5); line-height: 1.45; }
-      button { width: 100%; border: 0; border-radius: 14px; padding: 14px 18px; font-size: 16px; font-weight: 700; color: var(--tg-theme-button-text-color, #fff); background: var(--tg-theme-button-color, #2aabee); }
-      .small { margin-top: 14px; font-size: 12px; }
-      .error { color: #ff8c8c; }
+      :root {
+        color-scheme: dark;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg: var(--tg-theme-bg-color, #0f1720);
+        --panel: var(--tg-theme-secondary-bg-color, #1c2a38);
+        --text: var(--tg-theme-text-color, #f6f8fb);
+        --hint: var(--tg-theme-hint-color, #aebccc);
+        --button: var(--tg-theme-button-color, #2aabee);
+        --button-text: var(--tg-theme-button-text-color, #fff);
+        --accent: #35b8ff;
+        --success: #57d68d;
+        --border: rgba(255,255,255,.09);
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; color: var(--text); background: radial-gradient(circle at 15% 0%, rgba(42,171,238,.16), transparent 35%), var(--bg); }
+      main { min-height: 100vh; padding: max(22px, env(safe-area-inset-top)) 16px max(26px, env(safe-area-inset-bottom)); display: flex; justify-content: center; }
+      .shell { width: min(520px, 100%); display: flex; flex-direction: column; gap: 14px; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 4px; }
+      .brand { font-size: 13px; color: var(--hint); letter-spacing: .08em; text-transform: uppercase; font-weight: 700; }
+      .user { display: flex; align-items: center; gap: 9px; min-width: 0; }
+      .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #27394a; border: 1px solid rgba(255,255,255,.16); }
+      .avatar-fallback { display: grid; place-items: center; font-weight: 800; color: #dff4ff; }
+      .user-name { max-width: 220px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }
+      .user-caption { color: var(--hint); font-size: 11px; margin-top: 1px; }
+      .card { padding: 22px 18px 20px; border: 1px solid var(--border); border-radius: 24px; background: linear-gradient(160deg, rgba(31,48,64,.96), rgba(18,31,43,.98)); box-shadow: 0 18px 42px rgba(0,0,0,.26); animation: card-in .55s ease both; }
+      .promo { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border-radius: 16px; background: rgba(42,171,238,.12); border: 1px solid rgba(53,184,255,.25); color: #dff5ff; line-height: 1.35; font-size: 13px; animation: glow 3.2s ease-in-out infinite; }
+      .promo-icon { font-size: 20px; line-height: 1; }
+      .progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 18px 0 4px; }
+      .progress span { height: 5px; border-radius: 9px; background: rgba(255,255,255,.13); transition: background .35s ease, transform .35s ease; }
+      .progress span.active { background: var(--accent); transform: scaleY(1.35); }
+      .step-label { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+      h1 { margin: 8px 0 10px; font-size: clamp(24px, 7vw, 34px); line-height: 1.08; }
+      .lead { margin: 0; color: var(--hint); line-height: 1.5; font-size: 15px; }
+      .content { margin-top: 17px; line-height: 1.5; font-size: 15px; }
+      .content strong { color: #fff; }
+      .content a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(53,184,255,.35); }
+      .actions { display: grid; gap: 9px; margin-top: 20px; }
+      button { width: 100%; border: 0; border-radius: 15px; padding: 14px 16px; font: inherit; font-weight: 800; color: var(--button-text); background: var(--button); cursor: pointer; transition: transform .18s ease, filter .18s ease, opacity .18s ease; }
+      button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+      button:active { transform: translateY(1px) scale(.99); }
+      button.secondary { background: rgba(255,255,255,.09); color: var(--text); border: 1px solid var(--border); }
+      button.ghost { background: transparent; color: var(--accent); padding: 10px; font-weight: 700; }
+      button:disabled { opacity: .6; cursor: wait; transform: none; }
+      .field { margin-top: 17px; }
+      label { display: block; color: var(--hint); font-size: 13px; margin-bottom: 7px; }
+      input { width: 100%; border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 14px 15px; color: var(--text); background: rgba(0,0,0,.18); outline: none; font: inherit; font-size: 17px; letter-spacing: .04em; }
+      input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(53,184,255,.16); }
+      .hint, .status { margin: 8px 0 0; color: var(--hint); font-size: 12px; line-height: 1.4; }
+      .status.error { color: #ff9a9a; }
+      .status.success { color: var(--success); }
+      .details { margin-top: 13px; padding: 14px; border-radius: 16px; background: rgba(0,0,0,.17); border: 1px solid var(--border); animation: fade-in .35s ease both; }
+      .details h2 { margin: 0 0 8px; font-size: 17px; }
+      .details ol { margin: 0; padding-left: 20px; }
+      .details li { margin: 7px 0; }
+      .modal { position: fixed; inset: 0; z-index: 5; display: grid; place-items: end center; padding: 18px; background: rgba(0,0,0,.58); backdrop-filter: blur(6px); }
+      .modal[hidden], [hidden] { display: none !important; }
+      .modal-card { width: min(520px, 100%); padding: 22px 18px; border-radius: 24px 24px 18px 18px; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 18px 44px rgba(0,0,0,.34); animation: sheet-in .35s ease both; }
+      .confirm-user { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+      .confirm-title { margin: 0 0 9px; font-size: 22px; }
+      .confirm-id { display: inline-block; margin: 10px 0 3px; padding: 9px 11px; border-radius: 11px; color: #dff5ff; background: rgba(53,184,255,.12); font-weight: 800; letter-spacing: .06em; }
+      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 17px; }
+      .fineprint { color: var(--hint); text-align: center; font-size: 11px; line-height: 1.4; margin: 2px 4px 0; }
+      @keyframes card-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes sheet-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes glow { 0%, 100% { box-shadow: 0 0 0 rgba(53,184,255,0); } 50% { box-shadow: 0 0 22px rgba(53,184,255,.12); } }
+      @media (min-width: 600px) { main { align-items: center; } .card { padding: 29px 28px 26px; } }
     </style>
   </head>
   <body>
     <main>
-      <section class="card">
-        <div class="emoji" id="emoji">🚀</div>
-        <h1 id="title">Открываем ссылку</h1>
-        <p id="description">Подтвердите доступ к диалогу с ботом, чтобы получать уведомления и подсказки.</p>
-        <button id="continue">Продолжить</button>
-        <p class="small" id="status"></p>
-      </section>
+      <div class="shell">
+        <div class="topbar">
+          <div class="brand">Bet5K · официальный переход</div>
+          <div class="user">
+            <div class="avatar avatar-fallback" id="avatarFallback">?</div>
+            <img class="avatar" id="avatar" alt="" hidden>
+            <div><div class="user-name" id="userName">Участник</div><div class="user-caption">участник акции PARI</div></div>
+          </div>
+        </div>
+
+        <section class="card" id="card">
+          <div class="promo"><span class="promo-icon">🎁</span><span>На протяжении всех шагов вы участвуете в акции PARI. На 4-м шаге можно получить <strong>5 фрибетов по 1000 ₽</strong> от букмекера при выполнении официальных условий акции.</span></div>
+          <div class="progress" id="progress" aria-label="Шаги регистрации"><span></span><span></span><span></span><span></span></div>
+          <div class="step-label" id="stepLabel">Шаг 1 из 4</div>
+          <h1 id="title">Регистрация в PARI</h1>
+          <p class="lead" id="lead"></p>
+          <div class="content" id="content"></div>
+          <div class="field" id="clientField" hidden>
+            <label for="clientId">Client ID из личного кабинета PARI</label>
+            <input id="clientId" inputmode="text" autocomplete="off" maxlength="64" placeholder="Например, 12345678">
+            <p class="hint">Используйте латинские буквы, цифры, «_» или «-».</p>
+          </div>
+          <div class="actions" id="actions"></div>
+          <p class="status" id="status" role="status"></p>
+        </section>
+        <p class="fineprint">Сервис предназначен для лиц старше 18 лет. Прогнозы не гарантируют выигрыш. Проверяйте актуальные условия акции на официальных ресурсах PARI.</p>
+      </div>
     </main>
+
+    <div class="modal" id="confirmModal" hidden>
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-user"><div class="avatar avatar-fallback" id="confirmAvatarFallback">?</div><img class="avatar" id="confirmAvatar" alt="" hidden><div class="user-name" id="confirmUserName">Участник</div></div>
+        <h2 class="confirm-title" id="confirmTitle">Проверь Client ID</h2>
+        <div id="confirmText">Твой ID из личного кабинета:</div>
+        <div class="confirm-id" id="confirmId"></div>
+        <div>Всё верно?</div>
+        <div class="modal-actions"><button class="secondary" id="confirmNo" type="button">Нет, исправить</button><button id="confirmYes" type="button">Да, отправить</button></div>
+      </section>
+    </div>
+
     <script>
       (() => {
         const tg = window.Telegram && window.Telegram.WebApp;
         const query = new URLSearchParams(window.location.search);
-        const rawTarget = query.get('target');
-        const rawFlow = query.get('flow');
+        const readSession = (key) => { try { return sessionStorage.getItem(key) || ''; } catch (_) { return ''; } };
+        const saveSession = (key, value) => { try { sessionStorage.setItem(key, value || ''); } catch (_) {} };
+        const rawTarget = query.get('target') || '';
+        const rawFlow = query.get('flow') || '';
+        const target = rawTarget || readSession('bet5k_target');
+        const flow = rawFlow || readSession('bet5k_flow') || 'link';
+        const profileTarget = query.get('profile_target') || readSession('bet5k_profile_target');
+        const depositTarget = query.get('deposit_target') || readSession('bet5k_deposit_target');
         if (rawTarget) {
-          try {
-            sessionStorage.setItem('bet5k_target', rawTarget);
-            sessionStorage.setItem('bet5k_flow', rawFlow || 'link');
-          } catch (_) {}
+          saveSession('bet5k_target', rawTarget); saveSession('bet5k_flow', rawFlow || 'link');
+          saveSession('bet5k_profile_target', query.get('profile_target') || ''); saveSession('bet5k_deposit_target', query.get('deposit_target') || '');
         }
-        const target = rawTarget || (() => { try { return sessionStorage.getItem('bet5k_target'); } catch (_) { return null; } })();
-        const flow = rawFlow || (() => { try { return sessionStorage.getItem('bet5k_flow'); } catch (_) { return null; } })() || 'link';
-        // Keep the long affiliate/match destination out of the visible Web
-        // App address bar after it has been read.
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
-        const title = document.getElementById('title');
-        const description = document.getElementById('description');
-        const button = document.getElementById('continue');
-        const status = document.getElementById('status');
 
-        if (tg) {
-          tg.ready();
-          tg.expand();
-          if (tg.colorScheme) document.documentElement.dataset.theme = tg.colorScheme;
-        }
-        if (flow === 'pari') {
-          title.textContent = 'Регистрация в PARI';
-          description.textContent = 'Разрешите сообщения от бота — после этого откроется регистрация и придёт CTA с дальнейшими шагами.';
-          document.getElementById('emoji').textContent = '🎯';
-        } else if (flow === 'pari_profile') {
-          title.textContent = 'Личный кабинет PARI';
-          description.textContent = 'Открываем ваш кабинет в PARI. Ссылка защищена Web App-обёрткой.';
-          document.getElementById('emoji').textContent = '👤';
-        } else if (flow === 'match') {
-          title.textContent = 'Страница матча';
-          description.textContent = 'Открываем страницу матча в защищённой Web App-обёртке.';
-          document.getElementById('emoji').textContent = '🏟️';
-        }
+        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+        const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || 'Участник';
+        const initials = displayName.trim().charAt(0).toUpperCase() || '?';
+        const avatar = document.getElementById('avatar'); const avatarFallback = document.getElementById('avatarFallback');
+        const confirmAvatar = document.getElementById('confirmAvatar'); const confirmAvatarFallback = document.getElementById('confirmAvatarFallback');
+        document.getElementById('userName').textContent = displayName; document.getElementById('confirmUserName').textContent = displayName;
+        avatarFallback.textContent = initials; confirmAvatarFallback.textContent = initials;
+        if (telegramUser.photo_url) { avatar.src = telegramUser.photo_url; avatar.hidden = false; avatarFallback.hidden = true; confirmAvatar.src = telegramUser.photo_url; confirmAvatar.hidden = false; confirmAvatarFallback.hidden = true; }
+        if (tg) { tg.ready(); tg.expand(); }
 
-        const openTarget = () => {
-          if (!target || !/^https?:\/\//i.test(target)) {
-            status.textContent = 'Ссылка недоступна.';
-            status.classList.add('error');
-            return;
-          }
-          if (tg && typeof tg.openLink === 'function') tg.openLink(target);
-          else window.location.assign(target);
-        };
-
+        const validUrl = (url) => /^https?:\/\//i.test(url || '');
+        const title = document.getElementById('title'); const lead = document.getElementById('lead'); const content = document.getElementById('content');
+        const actions = document.getElementById('actions'); const clientField = document.getElementById('clientField'); const clientInput = document.getElementById('clientId');
+        const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
+        const confirmModal = document.getElementById('confirmModal'); const confirmId = document.getElementById('confirmId');
+        let clientId = readSession('bet5k_client_id');
+        let step = Number(readSession('bet5k_step')) || (flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1);
+        if (flow === 'match' || flow === 'link') step = 0;
         let accessPromise;
+        const setStatus = (text, kind = '') => { status.textContent = text || ''; status.className = `status ${kind}`.trim(); };
+        const saveStep = (value) => { step = value; saveSession('bet5k_step', String(value)); };
         const requestWriteAccess = () => {
           if (accessPromise) return accessPromise;
-          const tgVersion = Number.parseFloat((tg && tg.version) || '0');
-          if (!tg || typeof tg.requestWriteAccess !== 'function' || tgVersion < 6.9) {
-            return Promise.resolve(true);
-          }
+          const version = Number.parseFloat((tg && tg.version) || '0');
+          if (!tg || typeof tg.requestWriteAccess !== 'function' || version < 6.9) return Promise.resolve(true);
           accessPromise = new Promise((resolve) => {
-            let settled = false;
-            const done = (allowed) => {
-              if (settled) return;
-              settled = true;
-              resolve(allowed !== false);
-            };
-            try {
-              const result = tg.requestWriteAccess(done);
-              if (result && typeof result.then === 'function') result.then(done).catch(() => done(false));
-            } catch (_) { done(false); }
+            let settled = false; const done = (allowed) => { if (settled) return; settled = true; resolve(allowed !== false); };
+            try { const result = tg.requestWriteAccess(done); if (result && typeof result.then === 'function') result.then(done).catch(() => done(false)); } catch (_) { done(false); }
             setTimeout(() => done(false), 5000);
           });
           return accessPromise;
         };
-
-        button.addEventListener('click', async () => {
-          button.disabled = true;
-          status.textContent = 'Запрашиваем разрешение…';
+        const openTarget = async (url, nextStep) => {
+          if (!validUrl(url)) { setStatus('Ссылка пока недоступна. Вернитесь в бот и запросите кнопку ещё раз.', 'error'); return; }
+          if (nextStep !== undefined) { saveStep(nextStep); render(); }
           const allowed = await requestWriteAccess();
-          if (allowed) {
-            status.textContent = 'Готово. Открываем…';
-            setTimeout(openTarget, 120);
-          } else {
-            status.textContent = 'Разрешение не выдано. Нажмите кнопку ещё раз или разрешите сообщения в Telegram.';
-            button.disabled = false;
-          }
-        });
+          if (!allowed) { setStatus('Разрешите сообщения от бота в Telegram и повторите попытку.', 'error'); return; }
+          setStatus('Открываем официальный сайт PARI…');
+          if (tg && typeof tg.openLink === 'function') tg.openLink(url); else window.location.assign(url);
+        };
+        const actionButton = (text, handler, kind = '') => { const button = document.createElement('button'); button.type = 'button'; button.textContent = text; if (kind) button.className = kind; button.addEventListener('click', handler); return button; };
 
-        // Start the permission prompt immediately on first open where the
-        // Telegram client supports it; the button remains as a fallback.
-        if (flow === 'pari') requestWriteAccess().then((allowed) => {
-          if (allowed) openTarget();
-        });
+        function render() {
+          actions.replaceChildren(); content.replaceChildren(); clientField.hidden = step !== 3; progress.hidden = step === 0; stepLabel.hidden = step === 0; document.querySelector('.promo').hidden = step === 0;
+          if (step === 0) { title.textContent = flow === 'match' ? 'Страница матча' : 'Открываем ссылку'; lead.textContent = 'Нажмите кнопку, чтобы продолжить переход.'; actions.append(actionButton('🏟 Открыть страницу', () => openTarget(target))); return; }
+          stepLabel.textContent = `Шаг ${step} из 4`; [...progress.children].forEach((bar, index) => bar.classList.toggle('active', index < step));
+          if (step === 1) { title.textContent = 'Шаг 1. Регистрация в PARI'; lead.textContent = `${displayName}, чтобы получить полный доступ к боту — пройдите регистрацию по кнопке ниже. Это бесплатно.`; content.innerHTML = '<p>Введи промокод <strong>GYM5K</strong> при регистрации и возвращайся сюда после завершения.</p>'; actions.append(actionButton('🚀 Зарегистрироваться в PARI', () => openTarget(target, 2))); }
+          else if (step === 2) { title.textContent = 'Шаг 2. Идентификация'; lead.textContent = `${displayName}, пройди идентификацию через Госуслуги, Сбер ID или T-ID.`; content.innerHTML = '<p>После идентификации нажми кнопку ниже — или сразу выбери «Уже прошёл идентификацию».</p>'; actions.append(actionButton('🔐 Пройти идентификацию', () => openTarget(profileTarget, 3))); actions.append(actionButton('Уже прошёл идентификацию', () => { saveStep(3); render(); }, 'secondary')); }
+          else if (step === 3) { title.textContent = 'Шаг 3. Введи Client ID'; lead.textContent = 'Укажи Client ID из личного кабинета PARI — мы передадим его администратору на проверку.'; actions.append(actionButton('✅ Проверить Client ID', showConfirmation)); }
+          else { title.textContent = 'Шаг 4. Первый фрибет'; lead.textContent = `${displayName}, внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации — получи первый фрибет.`; content.innerHTML = 'У меня большой опыт <a href="https://t.me/BK5ET/4" target="_blank" rel="noopener">работы с фрибетами</a> — это отличный инструмент для увеличения банка.'; actions.append(actionButton('💳 Пополнить баланс', () => openTarget(depositTarget, 4))); actions.append(actionButton('Как получить 5 приветственных фрибетов по 1000 ₽?', toggleDetails, 'secondary')); actions.append(actionButton('📝 Регистрация', () => { if (clientId) { setStatus('✅ Client ID уже отправлен. Регистрация пройдена, заявка находится на проверке.', 'success'); return; } saveStep(1); render(); }, 'ghost')); }
+        }
+        function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
+        function showConfirmation() { const value = (clientInput.value || '').trim(); if (!/^[A-Za-z0-9][A-Za-z0-9_-]{1,63}$/.test(value)) { setStatus('Введите Client ID: от 2 до 64 символов, только латиница, цифры, «_» или «-».', 'error'); return; } clientId = value; saveSession('bet5k_client_id', value); confirmId.textContent = value; confirmModal.hidden = false; setStatus(''); }
+        document.getElementById('confirmNo').addEventListener('click', () => { confirmModal.hidden = true; clientInput.focus(); });
+        document.getElementById('confirmYes').addEventListener('click', () => { confirmModal.hidden = true; saveStep(4); render(); setStatus('✅ Заявка отправляется администратору…', 'success'); const payload = JSON.stringify({ type: 'pari_registration', action: 'submit', client_id: clientId }); if (tg && typeof tg.sendData === 'function') tg.sendData(payload); else setStatus('Откройте Web App из Telegram, чтобы отправить Client ID в бот.', 'error'); });
+        render();
+        if (flow === 'pari') requestWriteAccess().then((allowed) => { if (allowed && step === 1 && tg && typeof tg.openLink === 'function') setStatus('Готово. Нажмите кнопку регистрации ниже.'); });
       })();
     </script>
   </body>
