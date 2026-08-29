@@ -173,13 +173,15 @@
           saveSession('bet5k_bot_url', query.get('bot_url') || '');
           saveSession('bet5k_reset_token', query.get('reset_token') || '');
           saveSession('bet5k_known_user', query.get('known_user') === '1' ? '1' : '');
+          saveSession('bet5k_user_name', query.get('user_name') || '');
+          saveSession('bet5k_photo_url', query.get('photo_url') || '');
         }
         const trustedBotContext = Boolean(sessionUserId) && (
           query.get('known_user') === '1' || readSession('bet5k_known_user') === '1'
         );
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
-        const queryDisplayName = (query.get('user_name') || '').trim();
+        const queryDisplayName = (query.get('user_name') || readSession('bet5k_user_name') || '').trim();
         const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || queryDisplayName || 'Участник';
         const initials = displayName.trim().charAt(0).toUpperCase() || '?';
         const avatar = document.getElementById('avatar'); const avatarFallback = document.getElementById('avatarFallback');
@@ -188,7 +190,7 @@
         document.getElementById('confirmUserName').textContent = displayName;
         avatarFallback.textContent = initials;
         confirmAvatarFallback.textContent = initials;
-        const queryPhotoUrl = query.get('photo_url') || '';
+        const queryPhotoUrl = query.get('photo_url') || readSession('bet5k_photo_url') || '';
         const profilePhotoUrl = /^https:\/\//i.test(telegramUser.photo_url || '')
           ? telegramUser.photo_url
           : (/^https:\/\//i.test(queryPhotoUrl) ? queryPhotoUrl : '');
