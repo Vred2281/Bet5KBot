@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Bet5K · PARI</title>
-    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
     <style>
       :root {
         color-scheme: dark;
@@ -213,7 +213,7 @@
         let clientId = readSession('bet5k_client_id');
         let submissionSent = readSession('bet5k_submission_sent') === '1';
         const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
-        const stateVersion = '3';
+        const stateVersion = '4';
         const appliedResetToken = readSession('bet5k_applied_reset_token');
         const needsStateReset = trustedBotContext && (
           readSession('bet5k_state_version') !== stateVersion
@@ -359,3 +359,4 @@
     </script>
   </body>
 </html>
+
