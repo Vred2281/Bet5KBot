@@ -167,7 +167,6 @@
         const title = document.getElementById('title'); const lead = document.getElementById('lead'); const content = document.getElementById('content');
         const actions = document.getElementById('actions');
         const status = document.getElementById('status'); const progress = document.getElementById('progress'); const stepLabel = document.getElementById('stepLabel');
-        let submissionSent = readSession('bet5k_submission_sent') === '1';
         const flowStep = flow === 'pari_profile' ? 2 : flow === 'pari_deposit' ? 4 : 1;
         const stateVersion = '3';
         const appliedResetToken = readSession('bet5k_applied_reset_token');
@@ -180,7 +179,6 @@
           saveSession('bet5k_applied_reset_token', resetToken || 'legacy');
           saveSession('bet5k_step', '');
           saveSession('bet5k_submission_sent', '');
-          submissionSent = false;
         }
         // A public/stale URL has no verified bot context. Start from step 1
         // instead of reusing another person's browser state or jumping to a
@@ -218,10 +216,10 @@
           if (step === 1) { title.textContent = 'Шаг 1. Регистрация в PARI'; lead.textContent = `${displayName}, чтобы получить полный доступ к боту — пройдите регистрацию по кнопке ниже. Это бесплатно.`; content.innerHTML = '<p>Введи промокод <strong>GYM5K</strong> при регистрации и возвращайся сюда после завершения.</p>'; actions.append(actionButton('🚀 Зарегистрироваться в PARI', () => openTarget(target, 2))); }
           else if (step === 2) { title.textContent = 'Шаг 2. Идентификация'; lead.textContent = `${displayName}, пройди идентификацию через Госуслуги, Сбер ID или T-ID.`; content.innerHTML = '<p>После идентификации нажми кнопку ниже — или сразу выбери «Уже прошёл идентификацию».</p>'; actions.append(actionButton('🔐 Пройти идентификацию', () => openTarget(profileTarget, 3))); actions.append(actionButton('Уже прошёл идентификацию', () => { saveStep(3); render(); }, 'secondary')); }
           else if (step === 3) {
-            title.textContent = 'Шаг 3. Введи Client ID';
-            lead.textContent = `${displayName}, введи Client ID прямо в чате с ботом — так заявка точно попадёт администратору на проверку.`;
-            content.innerHTML = '<p>Нажми кнопку ниже. Бот откроет чат и подскажет, куда отправить Client ID из личного кабинета PARI.</p>';
-            actions.append(actionButton('📝 Ввести Client ID в боте', openBotClientIdInput, 'secondary'));
+            title.textContent = 'Шаг 3. Client ID в боте';
+            lead.textContent = `${displayName}, вернись в бота и отправь Client ID сообщением — так заявка попадёт администратору на проверку.`;
+            content.innerHTML = '<p>WebApp не запрашивает Client ID. Нажми кнопку ниже: приложение закроется, откроется чат с ботом, и бот подскажет, что отправить.</p>';
+            actions.append(actionButton('↩️ Вернуться в бота', openBotClientIdInput));
           }
           else {
             title.textContent = 'Шаг 4. Первый фрибет';
@@ -233,21 +231,22 @@
             });
             actions.append(actionButton('💳 Пополнить баланс', () => openTarget(depositTarget, 4)));
             actions.append(actionButton('Как получить 5 приветственных фрибетов по 1000 ₽?', toggleDetails, 'secondary'));
-            if (!submissionSent) {
-              actions.append(actionButton('↩️ Вернуться к вводу Client ID', () => { saveStep(3); render(); }, 'ghost'));
-            }
           }
         }
         function openBotClientIdInput() {
-          saveStep(3);
           if (!validUrl(botUrl)) {
             setStatus('Откройте Web App из сообщения бота и повторите попытку.', 'error');
             return;
           }
+          // The Client ID is entered and submitted by the bot. Keep the Web
+          // App ready on step 4 when it is reopened after the chat submission.
+          saveStep(4);
           const separator = botUrl.includes('?') ? '&' : '?';
           const botInputUrl = `${botUrl}${separator}start=pari_input`;
-          if (tg && typeof tg.openTelegramLink === 'function') tg.openTelegramLink(botInputUrl);
-          else window.location.assign(botInputUrl);
+          if (tg && typeof tg.openTelegramLink === 'function') {
+            tg.openTelegramLink(botInputUrl);
+            if (typeof tg.close === 'function') setTimeout(() => tg.close(), 120);
+          } else window.location.assign(botInputUrl);
         }
         function toggleDetails(event) { const existing = document.getElementById('details'); if (existing) { existing.remove(); event.currentTarget.textContent = 'Как получить 5 приветственных фрибетов по 1000 ₽?'; return; } const details = document.createElement('div'); details.id = 'details'; details.className = 'details'; details.innerHTML = '<h2>Как получить 5 приветственных фрибетов по 1000 ₽?</h2><ol><li>Введи промокод <strong>GYM5K</strong> при регистрации и пройди идентификацию.</li><li>Внеси депозит единым платежом от 1000 ₽ в течение 5 дней с момента регистрации.</li><li>Получи фрибет 1000 ₽.</li><li>Заключи пари на сумму 2000 ₽ в течение 5 дней с момента получения первого фрибета.</li><li>Получи второй фрибет 1000 ₽.</li><li>Повтори шаг №4 на суммы 3000 ₽, 4000 ₽ и 5000 ₽ — за каждое выполнение начисляется новый фрибет 1000 ₽.</li></ol><p>Выполнив все условия, ты получишь 5 фрибетов по 1000 ₽. Все пари в рамках акции учитываются после их расчёта.</p>'; content.append(details); event.currentTarget.textContent = 'Скрыть условия акции'; }
         render();
