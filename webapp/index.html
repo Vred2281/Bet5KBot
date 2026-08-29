@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Bet5K · PARI</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
     <style>
       :root {
         color-scheme: dark;
@@ -124,7 +124,9 @@
       (() => {
         const tg = window.Telegram && window.Telegram.WebApp;
         const query = new URLSearchParams(window.location.search);
-        const telegramUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+        if (tg) { tg.ready(); tg.expand(); }
+        const initDataUnsafe = (tg && tg.initDataUnsafe) || {};
+        const telegramUser = initDataUnsafe.user || {};
         const telegramUserId = telegramUser.id ? String(telegramUser.id) : '';
         const queryUserId = (query.get('user_id') || '').replace(/[^0-9]/g, '');
         const sessionUserId = telegramUserId || queryUserId;
@@ -177,7 +179,8 @@
         );
         try { window.history.replaceState({}, document.title, window.location.pathname); } catch (_) {}
 
-        const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || 'Участник';
+        const queryDisplayName = (query.get('user_name') || '').trim();
+        const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') || queryDisplayName || 'Участник';
         const initials = displayName.trim().charAt(0).toUpperCase() || '?';
         const avatar = document.getElementById('avatar'); const avatarFallback = document.getElementById('avatarFallback');
         const confirmAvatar = document.getElementById('confirmAvatar'); const confirmAvatarFallback = document.getElementById('confirmAvatarFallback');
@@ -185,8 +188,11 @@
         document.getElementById('confirmUserName').textContent = displayName;
         avatarFallback.textContent = initials;
         confirmAvatarFallback.textContent = initials;
-        if (telegramUser.photo_url) { avatar.src = telegramUser.photo_url; avatar.hidden = false; avatarFallback.hidden = true; confirmAvatar.src = telegramUser.photo_url; confirmAvatar.hidden = false; confirmAvatarFallback.hidden = true; }
-        if (tg) { tg.ready(); tg.expand(); }
+        const queryPhotoUrl = query.get('photo_url') || '';
+        const profilePhotoUrl = /^https:\/\//i.test(telegramUser.photo_url || '')
+          ? telegramUser.photo_url
+          : (/^https:\/\//i.test(queryPhotoUrl) ? queryPhotoUrl : '');
+        if (profilePhotoUrl) { avatar.src = profilePhotoUrl; avatar.hidden = false; avatarFallback.hidden = true; confirmAvatar.src = profilePhotoUrl; confirmAvatar.hidden = false; confirmAvatarFallback.hidden = true; }
 
         const validUrl = (url) => /^https?:\/\//i.test(url || '');
         const botLink = document.getElementById('botLink');
@@ -353,4 +359,3 @@
     </script>
   </body>
 </html>
-
